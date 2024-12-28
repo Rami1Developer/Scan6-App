@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param,Res,UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Response } from 'express';
 import { OcrService } from './ocr.service';
 import { diskStorage } from 'multer';
 import * as fs from 'fs';
@@ -10,12 +11,9 @@ import { extname } from 'path';
 
 @Controller('files')
 export class FileUploadController {
-  constructor(private readonly ocrService: OcrService,
+  constructor(private readonly ocrService: OcrService ) { }
 
-
-  ) { }
-
-  oldImageName: string = ""
+  oldImageName: string = "" 
 
   @Get()
   async analyzeImage(imageName: string) {
@@ -87,4 +85,17 @@ export class FileUploadController {
     return this.ocrService.getImageDetail(forgotPasswordDto.id);
   }
 
+
+  // Route to generate PDF from OCR data
+  @Get('generate-pdf/:userId')
+  async generatePDF(@Param('userId') userId: string, @Res() res: Response) {
+    try {
+     
+
+      // Generate the PDF based on the extracted data
+      await this.ocrService.generatePDFFromOCRData( userId, res);
+    } catch (error) {
+      res.status(500).send('Error generating PDF');
+    }
+  }
 }

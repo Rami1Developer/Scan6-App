@@ -15,8 +15,8 @@ async function bootstrap() {
   });
   dotenv.config();
   // Rendre le dossier accessible pour les téléchargements
-  app.use('../upload', express.static(join(__dirname, '..', 'upload')));
+  app.use('/upload', express.static(join(__dirname, '..', 'upload')));
 
   await app.listen(3000);
-}
+} 
 bootstrap();

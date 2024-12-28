@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { CreateOcrDto } from './dto/create-ocr.dto';
-import { UpdateOcrDto } from './dto/update-ocr.dto';
+import * as PDFDocument from 'pdfkit';
+import { Response } from 'express'; // For returning a response with PDF in Express
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { OCRData } from './OCRData';
 import { AuthService } from '../auth/auth.service'
-import { User } from '../auth/schemas/user.schema'
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 @Injectable()
@@ -87,7 +86,7 @@ export class OcrService {
     }
   }
 
-// Method to save extracted OCR data associated with a user
+  // Method to save extracted OCR data associated with a user
   async saveExtractedData(extractedFields: Record<string, any>, userId: string) {
     console.log("Attempting to save the data ...");
 
@@ -126,7 +125,7 @@ export class OcrService {
 
       var a = (await user)._id
       a = String(a)
- 
+
 
 
 
@@ -151,5 +150,58 @@ export class OcrService {
       .exec();
   }
 
- 
+  async generatePDFFromOCRData(userId: string, res: Response) {
+    try {
+      // Fetch OCR data for the user
+      const ocrData = await this.ocrDataModel
+        .find({ userId: new Types.ObjectId(userId) })
+        .exec();
+
+      if (!ocrData || ocrData.length === 0) {
+        res.status(404).send('No OCR data found for the user.');
+        return;
+      }
+
+      // Create a new PDF document
+      const doc = new PDFDocument({ margin: 50 });
+
+      // Set response headers for downloading PDF
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename=ocr-data-${userId}.pdf`);
+
+      // Pipe the PDF document to the response
+      doc.pipe(res);
+      const user = await this.authService.findUserById(userId);
+
+      // Add a title to the PDF
+      doc.fontSize(18).font('Helvetica-Bold').text(`OCR Data for User ${user.name}`, { align: 'center' });
+      doc.moveDown(2); // Add some space after the title
+
+      // Add some introductory text or description
+      doc.fontSize(12).font('Helvetica').text('The following OCR data is retrieved for the user.', { align: 'center' });
+      doc.moveDown(2);
+
+      // Iterate over the OCR data and add it to the PDF
+      ocrData.forEach((data, index) => {
+        doc.fontSize(14).font('Helvetica-Bold').text(`OCR Data Entry #${index + 1}`, { underline: true });
+        doc.moveDown(1);
+
+        Object.entries(data.toObject()).forEach(([key, value]) => {
+          if (key !== '_id' && key !== 'userId' && key !== '__v' && key !== 'image_name' ) {
+            doc.fontSize(12).font('Helvetica').text(`${key}: ${value}`);
+            doc.moveDown(0.5); // Add some space between fields
+          }
+        });
+
+        if (index < ocrData.length - 1) {
+          doc.addPage(); // Add a new page for each OCR data entry (except the last one)
+        }
+      });
+      // Finalize the PDF
+      doc.end();
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      res.status(500).send('Error generating PDF');
+    }
+  }
 }
