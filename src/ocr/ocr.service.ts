@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as PDFDocument from 'pdfkit';
 import { Response } from 'express'; // For returning a response with PDF in Express
 import { InjectModel } from '@nestjs/mongoose';
@@ -7,6 +7,9 @@ import { OCRData } from './OCRData';
 import { AuthService } from '../auth/auth.service'
 import { GoogleAIFileManager } from "@google/generative-ai/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import * as fs from 'fs';
+import * as path from 'path';
+
 @Injectable()
 export class OcrService {
 
@@ -70,7 +73,7 @@ export class OcrService {
 
       // Get the model response
       var model_response = await result.response.text(); // Ensure this is awaited if it's a promise
-      console.log("thei si sthe putput odf the primary model response :m:::::::::::")
+      console.log("there is the output of the primary model response :m:::::::::::")
       console.log(model_response)
       // Pass model_response into extractJson
       const extractedJson = this.extractJson(model_response);
@@ -202,6 +205,37 @@ export class OcrService {
     } catch (error) {
       console.error('Error generating PDF:', error);
       res.status(500).send('Error generating PDF');
+    }
+  }
+
+
+  async deleteImages(ids: string[]): Promise<number> {
+    try {
+      // Retrieve the image records from the database
+      const images = await this.ocrDataModel.find({ _id: { $in: ids } });
+
+      // Delete the files from the filesystem
+      for (const image of images) {
+        const filePath = path.join(
+          __dirname,
+          '..',
+          '..',
+          'uploads',
+          image.image_name,
+        );
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+
+      // Delete the records from the database
+      const result = await this.ocrDataModel.deleteMany({ _id: { $in: ids } });
+      return result.deletedCount || 0;
+    } catch (error) {
+      throw new HttpException(
+        'Error while deleting images',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 }

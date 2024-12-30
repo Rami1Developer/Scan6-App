@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Param,Res,UploadedFile, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param,Res,UploadedFile, UseInterceptors, HttpException, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { OcrService } from './ocr.service';
 import { diskStorage } from 'multer';
@@ -98,4 +98,28 @@ export class FileUploadController {
       res.status(500).send('Error generating PDF');
     }
   }
+
+  @Post('deleteImages')
+  async deleteImages(@Body() body: { ids: string[] }) {
+    try {
+      if (!body.ids || body.ids.length === 0) {
+        throw new HttpException(
+          'No image IDs provided',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const deletedCount = await this.ocrService.deleteImages(body.ids);
+
+      return {
+        message: `${deletedCount} images deleted successfully.`,
+      };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Failed to delete images',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
 }
