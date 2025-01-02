@@ -190,7 +190,7 @@ export class OcrService {
         doc.moveDown(1);
 
         Object.entries(data.toObject()).forEach(([key, value]) => {
-          if (key !== '_id' && key !== 'userId' && key !== '__v' && key !== 'image_name' ) {
+          if (key !== '_id' && key !== 'userId' && key !== '__v' && key !== 'image_name') {
             doc.fontSize(12).font('Helvetica').text(`${key}: ${value}`);
             doc.moveDown(0.5); // Add some space between fields
           }
@@ -211,8 +211,17 @@ export class OcrService {
 
   async deleteImages(ids: string[]): Promise<number> {
     try {
+      if (!ids || ids.length === 0) {
+        console.log(ids);
+        throw new HttpException(
+          'No image IDs provided',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      console.log("________________1");
       // Retrieve the image records from the database
       const images = await this.ocrDataModel.find({ _id: { $in: ids } });
+      console.log("________________2");
 
       // Delete the files from the filesystem
       for (const image of images) {
@@ -223,13 +232,20 @@ export class OcrService {
           'uploads',
           image.image_name,
         );
+  
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
+
       }
+      console.log("________________3");
 
       // Delete the records from the database
       const result = await this.ocrDataModel.deleteMany({ _id: { $in: ids } });
+
+      console.log(result.deletedCount);
+      console.log("________________4");
+
       return result.deletedCount || 0;
     } catch (error) {
       throw new HttpException(

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Param,Res,UploadedFile, UseInterceptors, HttpException, HttpStatus } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param, Res, UploadedFile, UseInterceptors, HttpException, HttpStatus } from '@nestjs/common';
 import { Response } from 'express';
 import { OcrService } from './ocr.service';
 import { diskStorage } from 'multer';
@@ -11,9 +11,9 @@ import { extname } from 'path';
 
 @Controller('files')
 export class FileUploadController {
-  constructor(private readonly ocrService: OcrService ) { }
+  constructor(private readonly ocrService: OcrService) { }
 
-  oldImageName: string = "" 
+  oldImageName: string = ""
 
   @Get()
   async analyzeImage(imageName: string) {
@@ -90,36 +90,19 @@ export class FileUploadController {
   @Get('generate-pdf/:userId')
   async generatePDF(@Param('userId') userId: string, @Res() res: Response) {
     try {
-     
+
 
       // Generate the PDF based on the extracted data
-      await this.ocrService.generatePDFFromOCRData( userId, res);
+      await this.ocrService.generatePDFFromOCRData(userId, res);
     } catch (error) {
       res.status(500).send('Error generating PDF');
     }
   }
 
   @Post('deleteImages')
-  async deleteImages(@Body() body: { ids: string[] }) {
-    try {
-      if (!body.ids || body.ids.length === 0) {
-        throw new HttpException(
-          'No image IDs provided',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      const deletedCount = await this.ocrService.deleteImages(body.ids);
-
-      return {
-        message: `${deletedCount} images deleted successfully.`,
-      };
-    } catch (error) {
-      throw new HttpException(
-        error.message || 'Failed to delete images',
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
-    }
+  async deleteImages(@Body() body: { userId: string[] }) {
+    console.log("_______________");
+    return await this.ocrService.deleteImages(body.userId);
   }
-
 }
+
