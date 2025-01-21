@@ -100,16 +100,16 @@ export class FileUploadController {
   }
 
   @Post('deleteImages')
-  async deleteImages(@Body() body: { ids: string[] }) {
+  async deleteImages(@Body() body: { userId: string[] }) {
     try {
-      if (!body.ids || body.ids.length === 0) {
+      if (!body.userId || body.userId.length === 0) {
         throw new HttpException(
-          'No image IDs provided',
+          'No image userId provided',
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      const deletedCount = await this.ocrService.deleteImages(body.ids);
+      const deletedCount = await this.ocrService.deleteImages(body.userId);
 
       return {
         message: `${deletedCount} images deleted successfully.`,
